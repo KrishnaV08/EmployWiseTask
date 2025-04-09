@@ -12,16 +12,14 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const [inputEmail, setInputEmail] = useState('');
-  const [inputPass, setInputPass] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/users'); // Already logged in
-    }
+    if (token) navigate('/users');
   }, [navigate]);
 
   const handleSubmit = async (e) => {
@@ -29,33 +27,35 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const res = await axios.post('https://reqres.in/api/login', {
-        email: inputEmail,
-        password: inputPass,
+      const response = await axios.post('https://reqres.in/api/login', {
+        email,
+        password,
       });
 
-      localStorage.setItem('token', res.data.token);
-      setInputEmail('');
-      setInputPass('');
+      localStorage.setItem('token', response.data.token);
+      setEmail('');
+      setPassword('');
       navigate('/users');
-    } catch (err) {
-      setInputEmail('');
-      setInputPass('');
+    } catch {
       setError('Login failed. Please check your credentials.');
+      setEmail('');
+      setPassword('');
     }
   };
 
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 10 }}>
-        <Typography variant="h4" gutterBottom align="center">
+        <Typography variant="h4" align="center" gutterBottom>
           Login
         </Typography>
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
+
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             label="Email"
@@ -63,8 +63,8 @@ const LoginPage = () => {
             fullWidth
             margin="normal"
             required
-            value={inputEmail}
-            onChange={(e) => setInputEmail(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
             label="Password"
@@ -72,8 +72,8 @@ const LoginPage = () => {
             fullWidth
             margin="normal"
             required
-            value={inputPass}
-            onChange={(e) => setInputPass(e.target.value)}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
           <Button
             type="submit"

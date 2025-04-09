@@ -31,37 +31,40 @@ const UsersPage = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
   const [editUser, setEditUser] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
 
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    if (!token) {
-      navigate('/');
-    }
+    if (!token) navigate('/');
   }, [token, navigate]);
 
-  const fetchAllUsers = async () => {
-    try {
-      const res1 = await axios.get(`https://reqres.in/api/users?page=1`);
-      const res2 = await axios.get(`https://reqres.in/api/users?page=2`);
-      const combined = [...res1.data.data, ...res2.data.data];
-      setAllUsers(combined);
-    } catch (err) {
-      console.error('Failed to fetch users', err);
-    }
-  };
-
   useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const [res1, res2] = await Promise.all([
+          axios.get('https://reqres.in/api/users?page=1'),
+          axios.get('https://reqres.in/api/users?page=2'),
+        ]);
+        setAllUsers([...res1.data.data, ...res2.data.data]);
+      } catch (err) {
+        console.error('Failed to fetch users', err);
+      }
+    };
+
     fetchAllUsers();
   }, []);
 
+  
+
   const handleLogout = () => {
-    alert('Are you sure?');
-    localStorage.removeItem('token');
-    navigate('/');
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('token');
+      navigate('/');
+    }
   };
 
   const handleEditClick = (user) => {
@@ -73,7 +76,7 @@ const UsersPage = () => {
     try {
       await axios.put(`https://reqres.in/api/users/${editUser.id}`, editUser);
       setAllUsers((prev) =>
-        prev.map((u) => (u.id === editUser.id ? { ...u, ...editUser } : u))
+        prev.map((user) => (user.id === editUser.id ? { ...user, ...editUser } : user))
       );
       setSnack({ open: true, message: 'User updated successfully!', severity: 'success' });
       setOpenDialog(false);
@@ -83,42 +86,41 @@ const UsersPage = () => {
   };
 
   const handleDelete = async (id) => {
-    alert('Sure you want to delete this user?');
-    try {
-      await axios.delete(`https://reqres.in/api/users/${id}`);
-      setAllUsers((prev) => prev.filter((u) => u.id !== id));
-      setSnack({ open: true, message: 'User deleted successfully!', severity: 'success' });
-    } catch {
-      setSnack({ open: true, message: 'Failed to delete user.', severity: 'error' });
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await axios.delete(`https://reqres.in/api/users/${id}`);
+        setAllUsers((prev) => prev.filter((user) => user.id !== id));
+        setSnack({ open: true, message: 'User deleted successfully!', severity: 'success' });
+      } catch {
+        setSnack({ open: true, message: 'Failed to delete user.', severity: 'error' });
+      }
     }
   };
 
-  // 🔍 Filtered and paginated users
   const filteredUsers = allUsers.filter((user) =>
     `${user.first_name} ${user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
-  const start = (page - 1) * USERS_PER_PAGE;
-  const currentUsers = filteredUsers.slice(start, start + USERS_PER_PAGE);
+  const currentUsers = filteredUsers.slice(
+    (page - 1) * USERS_PER_PAGE,
+    page * USERS_PER_PAGE
+  );
 
   return (
     <>
       <AppBar position="static">
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h6">User Management</Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
+          <Button color="inherit" onClick={handleLogout}>Logout</Button>
         </Toolbar>
       </AppBar>
 
       <Container sx={{ mt: 4 }}>
-        {/* 🔍 Search Input */}
         <Box mb={3}>
           <TextField
-            label="Search users by name or email"
+            label="Search by name or email"
             variant="outlined"
             fullWidth
             value={searchTerm}
@@ -126,21 +128,15 @@ const UsersPage = () => {
           />
         </Box>
 
-        {/* 🧑‍🤝‍🧑 User Cards */}
         <Grid container spacing={3} justifyContent="center">
           {currentUsers.map((user) => (
             <Grid item key={user.id}>
-              <Card sx={{ width: 200, textAlign: 'center', padding: 1 }}>
+              <Card sx={{ width: 200, textAlign: 'center', p: 1 }}>
                 <CardMedia
                   component="img"
                   image={user.avatar}
                   alt={user.first_name}
-                  sx={{
-                    width: 100,
-                    height: 100,
-                    margin: '0 auto',
-                    borderRadius: '50%',
-                  }}
+                  sx={{ width: 100, height: 100, mx: 'auto', borderRadius: '50%' }}
                 />
                 <CardContent>
                   <Typography variant="subtitle1">
@@ -161,7 +157,6 @@ const UsersPage = () => {
           ))}
         </Grid>
 
-        {/* Pagination */}
         <Grid container justifyContent="center" mt={3}>
           <Pagination
             count={totalPages}
@@ -172,7 +167,6 @@ const UsersPage = () => {
         </Grid>
       </Container>
 
-      {/* 📝 Edit Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
@@ -200,13 +194,10 @@ const UsersPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleEditSubmit} variant="contained">
-            Save
-          </Button>
+          <Button variant="contained" onClick={handleEditSubmit}>Save</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ✅ Snackbar for feedback */}
       <Snackbar
         open={snack.open}
         autoHideDuration={3000}
