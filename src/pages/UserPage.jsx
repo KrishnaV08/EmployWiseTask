@@ -21,6 +21,7 @@ import {
   Alert,
   IconButton,
   Box,
+  CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -34,31 +35,38 @@ const UsersPage = () => {
   const [editUser, setEditUser] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
+  const [authChecked, setAuthChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    if (!token) navigate('/');
-  }, [token, navigate]);
+    const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        const [res1, res2] = await Promise.all([
-          axios.get('https://reqres.in/api/users?page=1'),
-          axios.get('https://reqres.in/api/users?page=2'),
-        ]);
-        setAllUsers([...res1.data.data, ...res2.data.data]);
-      } catch (err) {
-        console.error('Failed to fetch users', err);
-      }
-    };
+    if (!token) {
+      navigate('/', { replace: true });
+    } else {
+      setLoading(true);
+      fetchAllUsers();
+    }
 
-    fetchAllUsers();
-  }, []);
+    setAuthChecked(true);
+  }, [navigate]);
 
-  
+  const fetchAllUsers = async () => {
+    try {
+      const [res1, res2] = await Promise.all([
+        axios.get('https://reqres.in/api/users?page=1'),
+        axios.get('https://reqres.in/api/users?page=2'),
+      ]);
+      setAllUsers([...res1.data.data, ...res2.data.data]);
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+      setSnack({ open: true, message: 'Failed to load users.', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
@@ -107,6 +115,14 @@ const UsersPage = () => {
     (page - 1) * USERS_PER_PAGE,
     page * USERS_PER_PAGE
   );
+
+  if (!authChecked || loading) {
+    return (
+      <Box height="100vh" display="flex" alignItems="center" justifyContent="center">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <>

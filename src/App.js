@@ -1,17 +1,22 @@
-
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPages';
 import UsersPage from './pages/UserPage';
+import PrivateRoute from './components/PrivateRoute';
 
 const App = () => {
-  const token = localStorage.getItem('token');
-
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LoginPage />} />
-        <Route path="/users" element={token ? <UsersPage /> : <Navigate to="/" />} />
+        <Route
+          path="/users"
+          element={
+            <PrivateRoute>
+              <UsersPage />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );

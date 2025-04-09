@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Container,
   TextField,
@@ -7,41 +7,59 @@ import {
   Box,
   Paper,
   Alert,
-} from '@mui/material';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+  CircularProgress,
+} from "@mui/material";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) navigate('/users');
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      navigate("/users", { replace: true });
+    } else {
+      setCheckingAuth(false); // Done checking auth
+    }
   }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    setLoading(true);
 
     try {
-      const response = await axios.post('https://reqres.in/api/login', {
+      const res = await axios.post("https://reqres.in/api/login", {
         email,
         password,
       });
 
-      localStorage.setItem('token', response.data.token);
+      localStorage.setItem("token", res.data.token);
+      navigate("/users", { replace: true });
+    } catch (err) {
       setEmail('');
       setPassword('');
-      navigate('/users');
-    } catch {
-      setError('Login failed. Please check your credentials.');
-      setEmail('');
-      setPassword('');
+      setError("Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <Box height="100vh" display="flex" alignItems="center" justifyContent="center">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="sm">
@@ -75,13 +93,15 @@ const LoginPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
           <Button
             type="submit"
             variant="contained"
             fullWidth
             sx={{ mt: 2 }}
+            disabled={loading}
           >
-            Login
+            {loading ? <CircularProgress size={24} /> : "Login"}
           </Button>
         </Box>
       </Paper>
